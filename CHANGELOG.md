@@ -1,3 +1,8 @@
+## Unreleased
+
+* Changed:
+  * `gif::Error` and `gif::Frames` now implement `Clone`.
+
 ## v0.1.0 (2025-12-12)
 
 * Initial release.

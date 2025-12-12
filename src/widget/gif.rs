@@ -2,6 +2,7 @@
 use std::{
     fmt, io,
     path::Path,
+    sync::Arc,
     time::{Duration, Instant},
 };
 
@@ -24,17 +25,30 @@ use iced_futures::futures::{AsyncRead, AsyncReadExt};
 use tokio::io::{AsyncRead, AsyncReadExt};
 
 /// Error loading or decoding a gif
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum Error {
     /// Decode error
     #[error(transparent)]
-    Image(#[from] image::ImageError),
+    Image(#[from] Arc<image::ImageError>),
     /// Load error
     #[error(transparent)]
-    Io(#[from] std::io::Error),
+    Io(#[from] Arc<std::io::Error>),
+}
+
+impl std::convert::From<image::ImageError> for Error {
+    fn from(value: image::ImageError) -> Self {
+        Self::Image(Arc::new(value))
+    }
+}
+
+impl std::convert::From<std::io::Error> for Error {
+    fn from(value: std::io::Error) -> Self {
+        Self::Io(Arc::new(value))
+    }
 }
 
 /// The frames of a decoded gif
+#[derive(Clone)]
 pub struct Frames {
     first: Frame,
     frames: Vec<Frame>,
