@@ -4,18 +4,18 @@ use std::io;
 use std::path::Path;
 use std::time::{Duration, Instant};
 
-#[allow(unused)]
+use iced_runtime::Task;
+use iced_widget::core::border::Radius;
 use iced_widget::core::image::Image;
-use iced_widget::core::image::{self, FilterMethod, Handle};
+use iced_widget::core::image::{self as iced_image, FilterMethod, Handle};
 use iced_widget::core::mouse::Cursor;
 use iced_widget::core::widget::{tree, Tree};
 use iced_widget::core::{
-    event, layout, renderer, window, Clipboard, ContentFit, Element, Event, Layout, Length, Point,
+    layout, renderer, window, Clipboard, ContentFit, Element, Event, Layout, Length, Point,
     Rectangle, Rotation, Shell, Size, Vector, Widget,
 };
-use iced_widget::runtime::Task;
-use image_rs::codecs::gif;
-use image_rs::{AnimationDecoder, ImageDecoder};
+use image::codecs::gif;
+use image::{AnimationDecoder, ImageDecoder};
 
 #[cfg(not(feature = "tokio"))]
 use iced_futures::futures::{AsyncRead, AsyncReadExt};
@@ -27,7 +27,7 @@ use tokio::io::{AsyncRead, AsyncReadExt};
 pub enum Error {
     /// Decode error
     #[error(transparent)]
-    Image(#[from] image_rs::ImageError),
+    Image(#[from] image::ImageError),
     /// Load error
     #[error(transparent)]
     Io(#[from] std::io::Error),
@@ -91,7 +91,6 @@ impl Frames {
 
         let frames = decoder
             .into_frames()
-            .into_iter()
             .map(|result| result.map(Frame::from))
             .collect::<Result<Vec<_>, _>>()?;
 
@@ -108,16 +107,16 @@ impl Frames {
 #[derive(Clone)]
 struct Frame {
     delay: Duration,
-    handle: image::Handle,
+    handle: iced_image::Handle,
 }
 
-impl From<image_rs::Frame> for Frame {
-    fn from(frame: image_rs::Frame) -> Self {
+impl From<image::Frame> for Frame {
+    fn from(frame: image::Frame) -> Self {
         let (width, height) = frame.buffer().dimensions();
 
         let delay = frame.delay().into();
 
-        let handle = image::Handle::from_rgba(width, height, frame.into_buffer().into_vec());
+        let handle = iced_image::Handle::from_rgba(width, height, frame.into_buffer().into_vec());
 
         Self { delay, handle }
     }
@@ -152,6 +151,7 @@ pub struct Gif<'a> {
     content_fit: ContentFit,
     filter_method: FilterMethod,
     rotation: Rotation,
+    border_radius: Radius,
     opacity: f32,
 }
 
@@ -165,6 +165,7 @@ impl<'a> Gif<'a> {
             content_fit: ContentFit::default(),
             filter_method: FilterMethod::default(),
             rotation: Rotation::default(),
+            border_radius: Radius::default(),
             opacity: 1.0,
         }
     }
@@ -201,6 +202,12 @@ impl<'a> Gif<'a> {
         self
     }
 
+    /// Sets the [`Radius`] of the [`Image`].
+    pub fn border_radius(mut self, radius: Radius) -> Self {
+        self.border_radius = radius;
+        self
+    }
+
     /// Sets the opacity of the [`Image`].
     ///
     /// It should be in the [0.0, 1.0] range—`0.0` meaning completely transparent,
@@ -213,7 +220,7 @@ impl<'a> Gif<'a> {
 
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Gif<'a>
 where
-    Renderer: image::Renderer<Handle = Handle>,
+    Renderer: iced_image::Renderer<Handle = Handle>,
 {
     fn size(&self) -> Size<Length> {
         Size::new(self.width, self.height)
@@ -249,7 +256,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         _tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
@@ -260,22 +267,24 @@ where
             &self.frames.first.handle,
             self.width,
             self.height,
+            None,
             self.content_fit,
             self.rotation,
+            false,
         )
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut Tree,
-        event: Event,
+        event: &Event,
         _layout: Layout<'_>,
         _cursor: Cursor,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         let state = tree.state.downcast_mut::<State>();
 
         if let Event::Window(window::Event::RedrawRequested(now)) = event {
@@ -286,15 +295,14 @@ where
 
                 state.current = self.frames.frames[state.index].clone().into();
 
-                shell.request_redraw(window::RedrawRequest::At(now + state.current.frame.delay));
+                shell
+                    .request_redraw_at(window::RedrawRequest::At(*now + state.current.frame.delay));
             } else {
                 let remaining = state.current.frame.delay - elapsed;
 
-                shell.request_redraw(window::RedrawRequest::At(now + remaining));
+                shell.request_redraw_at(window::RedrawRequest::At(*now + remaining));
             }
         }
-
-        event::Status::Ignored
     }
 
     fn draw(
@@ -312,8 +320,7 @@ where
         // Pulled from iced_native::widget::<Image as Widget>::draw
         //
         // TODO: export iced_native::widget::image::draw as standalone function
-        {
-            let Size { width, height } = renderer.measure_image(&state.current.frame.handle);
+        if let Some(Size { width, height }) = renderer.measure_image(&state.current.frame.handle) {
             let image_size = Size::new(width as f32, height as f32);
             let rotated_size = self.rotation.apply(image_size);
 
@@ -342,13 +349,15 @@ where
 
             let render = |renderer: &mut Renderer| {
                 renderer.draw_image(
-                    image::Image {
+                    Image {
                         handle: state.current.frame.handle.clone(),
                         filter_method: self.filter_method,
                         rotation: self.rotation.radians(),
+                        border_radius: self.border_radius,
                         opacity: self.opacity,
                         snap: true,
                     },
+                    drawing_bounds,
                     drawing_bounds,
                 );
             };
@@ -364,7 +373,7 @@ where
 
 impl<'a, Message, Theme, Renderer> From<Gif<'a>> for Element<'a, Message, Theme, Renderer>
 where
-    Renderer: image::Renderer<Handle = Handle> + 'a,
+    Renderer: iced_image::Renderer<Handle = Handle> + 'a,
 {
     fn from(gif: Gif<'a>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(gif)

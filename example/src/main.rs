@@ -5,12 +5,13 @@ use iced::{window, Element, Length, Size, Task};
 use iced_moving_picture::widget::gif;
 
 fn main() {
-    iced::application(App::title, App::update, App::view)
+    iced::application(App::new, App::update, App::view)
         .window(window::Settings {
             size: Size::new(498.0, 164.0),
             ..Default::default()
         })
-        .run_with(App::new)
+        .title(App::title)
+        .run()
         .unwrap()
 }
 

@@ -8,6 +8,9 @@ authors = ["mtkennerly <mtkennerly@gmail.com>", "tarkah <admin@tarkah.dev>"]
 default = ["iced_moving_picture/default"]
 tokio = ["iced_moving_picture/tokio", "iced/tokio"]
 
+[lints]
+workspace = true
+
 [dependencies]
 iced_moving_picture = { path = "../", default-features = false }
-iced = { version = "0.13", features = [ "image" ] }
+iced = { version = "0.14", features = [ "image" ] }
