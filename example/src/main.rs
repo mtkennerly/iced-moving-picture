@@ -1,7 +1,9 @@
 use std::path::PathBuf;
 
-use iced::widget::{container, row};
-use iced::{window, Element, Length, Size, Task};
+use iced::{
+    widget::{container, row},
+    window, Element, Length, Size, Task,
+};
 use iced_moving_picture::widget::gif;
 
 fn main() {

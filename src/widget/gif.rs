@@ -1,21 +1,22 @@
 //! Display a GIF in your user interface
-use std::fmt;
-use std::io;
-use std::path::Path;
-use std::time::{Duration, Instant};
+use std::{
+    fmt, io,
+    path::Path,
+    time::{Duration, Instant},
+};
 
 use iced_runtime::Task;
-use iced_widget::core::border::Radius;
-use iced_widget::core::image::Image;
-use iced_widget::core::image::{self as iced_image, FilterMethod, Handle};
-use iced_widget::core::mouse::Cursor;
-use iced_widget::core::widget::{tree, Tree};
 use iced_widget::core::{
-    layout, renderer, window, Clipboard, ContentFit, Element, Event, Layout, Length, Point,
-    Rectangle, Rotation, Shell, Size, Vector, Widget,
+    border::Radius,
+    image::{self as iced_image, FilterMethod, Handle, Image},
+    layout,
+    mouse::Cursor,
+    renderer,
+    widget::{tree, Tree},
+    window, Clipboard, ContentFit, Element, Event, Layout, Length, Point, Rectangle, Rotation,
+    Shell, Size, Vector, Widget,
 };
-use image::codecs::gif;
-use image::{AnimationDecoder, ImageDecoder};
+use image::{codecs::gif, AnimationDecoder, ImageDecoder};
 
 #[cfg(not(feature = "tokio"))]
 use iced_futures::futures::{AsyncRead, AsyncReadExt};

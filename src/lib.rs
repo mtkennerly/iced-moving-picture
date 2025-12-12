@@ -1,4 +1,6 @@
 pub mod widget;
 
-pub use widget::gif;
-pub use widget::gif::{Frames, Gif};
+pub use widget::{
+    gif,
+    gif::{Frames, Gif},
+};
