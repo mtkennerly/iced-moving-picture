@@ -1,11 +1,11 @@
 [package]
-name = "iced_gif"
-version = "0.13.0"
+name = "iced_moving_picture"
+version = "0.1.0"
 edition = "2021"
-authors = ["tarkah <admin@tarkah.dev>"]
-description = "A GIF widget for Iced"
+authors = ["mtkennerly <mtkennerly@gmail.com>", "tarkah <admin@tarkah.dev>"]
+description = "Animated image widgets for Iced"
 license = "MIT"
-repository = "https://github.com/tarkah/iced_gif"
+repository = "https://github.com/mtkennerly/iced-moving-picture"
 
 [workspace]
 default-members = [

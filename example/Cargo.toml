@@ -2,12 +2,12 @@
 name = "example"
 version = "0.1.0"
 edition = "2021"
-authors = ["tarkah <admin@tarkah.dev>"]
+authors = ["mtkennerly <mtkennerly@gmail.com>", "tarkah <admin@tarkah.dev>"]
 
 [features]
-default = ["iced_gif/default"]
-tokio = ["iced_gif/tokio", "iced/tokio"]
+default = ["iced_moving_picture/default"]
+tokio = ["iced_moving_picture/tokio", "iced/tokio"]
 
 [dependencies]
-iced_gif = { path = "../", default-features = false }
+iced_moving_picture = { path = "../", default-features = false }
 iced = { version = "0.13", features = [ "image" ] }

@@ -1,11 +1,12 @@
-<div align="center">
+# Iced Moving Picture
 
-# Iced Gif
+`iced-moving-picture` is an Iced widget library
+(forked from [iced_gif](https://github.com/tarkah/iced_gif))
+to show animated images using [Iced](https://github.com/iced-rs/iced).
 
-[![Documentation](https://docs.rs/iced_gif/badge.svg)](https://docs.rs/iced_gif)
-[![Crates.io](https://img.shields.io/crates/v/iced_gif.svg)](https://crates.io/crates/iced_gif)
-[![License](https://img.shields.io/crates/l/iced_gif.svg)](https://github.com/tarkah/iced_gif/blob/master/LICENSE)
+Currently, only GIFs are supported.
 
-A gif widget for [iced](https://github.com/iced-rs/iced)
+## Demo: GIF
+[View code](example/src/main.rs)
 
-![](https://github.com/tarkah/iced_gif/blob/master/assets/demo.gif)
+![](assets/demo.gif)

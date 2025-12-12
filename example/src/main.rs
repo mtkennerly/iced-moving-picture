@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use iced::widget::{container, row};
 use iced::{window, Element, Length, Size, Task};
-use iced_gif::widget::gif;
+use iced_moving_picture::widget::gif;
 
 fn main() {
     iced::application(App::title, App::update, App::view)
@@ -35,7 +35,7 @@ impl App {
     }
 
     fn title(&self) -> String {
-        "Iced Gif".into()
+        "iced-moving-picture".into()
     }
 
     fn update(&mut self, message: Message) -> Task<Message> {
