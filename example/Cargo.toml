@@ -3,6 +3,7 @@ name = "example"
 version = "0.1.0"
 edition = "2021"
 authors = ["mtkennerly <mtkennerly@gmail.com>", "tarkah <admin@tarkah.dev>"]
+publish = false
 
 [features]
 default = ["iced_moving_picture/default"]
