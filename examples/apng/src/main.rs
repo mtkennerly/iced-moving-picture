@@ -29,7 +29,7 @@ struct App {
 
 impl App {
     fn new() -> (Self, Task<Message>) {
-        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../assets/3d2.apng");
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../assets/3d2.png");
 
         (
             App::default(),

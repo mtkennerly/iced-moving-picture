@@ -9,11 +9,11 @@ Supported formats:
 * GIF
 * APNG
 
+## Demo
+![](assets/demo.gif)
+
 ## Examples
 * [GIF sample code](examples/gif/src/main.rs)
   * Run with: `cargo run -p example-gif`
 * [APNG sample code](examples/apng/src/main.rs)
   * Run with: `cargo run -p example-apng`
-
-## Demo
-![](assets/demo.gif)
