@@ -1000,7 +1000,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "example"
+name = "example-apng"
+version = "0.1.0"
+dependencies = [
+ "iced",
+ "iced_moving_picture",
+]
+
+[[package]]
+name = "example-gif"
 version = "0.1.0"
 dependencies = [
  "iced",

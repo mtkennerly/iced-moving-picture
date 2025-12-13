@@ -1,0 +1,17 @@
+[package]
+name = "example-gif"
+version = "0.1.0"
+edition = "2021"
+authors = ["mtkennerly <mtkennerly@gmail.com>", "tarkah <admin@tarkah.dev>"]
+publish = false
+
+[features]
+default = ["iced_moving_picture/default"]
+tokio = ["iced_moving_picture/tokio", "iced/tokio"]
+
+[lints]
+workspace = true
+
+[dependencies]
+iced_moving_picture = { path = "../../", default-features = false }
+iced = { version = "0.14", features = [ "image" ] }

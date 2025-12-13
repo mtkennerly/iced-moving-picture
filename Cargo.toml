@@ -10,7 +10,7 @@ repository = "https://github.com/mtkennerly/iced-moving-picture"
 [workspace]
 members = [
   ".",
-  "./example",
+  "examples/*",
 ]
 
 [workspace.lints.rust]

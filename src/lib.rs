@@ -1,6 +1,3 @@
 pub mod widget;
 
-pub use widget::{
-    gif,
-    gif::{Frames, Gif},
-};
+pub use widget::{apng, apng::Apng, gif, gif::Gif};

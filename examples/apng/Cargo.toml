@@ -1,5 +1,5 @@
 [package]
-name = "example"
+name = "example-apng"
 version = "0.1.0"
 edition = "2021"
 authors = ["mtkennerly <mtkennerly@gmail.com>", "tarkah <admin@tarkah.dev>"]
@@ -13,5 +13,5 @@ tokio = ["iced_moving_picture/tokio", "iced/tokio"]
 workspace = true
 
 [dependencies]
-iced_moving_picture = { path = "../", default-features = false }
+iced_moving_picture = { path = "../../", default-features = false }
 iced = { version = "0.14", features = [ "image" ] }

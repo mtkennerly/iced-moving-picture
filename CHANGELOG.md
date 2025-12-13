@@ -1,5 +1,7 @@
 ## Unreleased
 
+* Added:
+  * Support for APNGs.
 * Changed:
   * `gif::Error` and `gif::Frames` now implement `Clone`.
 
