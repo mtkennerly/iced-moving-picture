@@ -168,6 +168,7 @@ pub struct Gif<'a> {
     rotation: Rotation,
     border_radius: Radius,
     opacity: f32,
+    paused: bool,
 }
 
 impl<'a> Gif<'a> {
@@ -182,6 +183,7 @@ impl<'a> Gif<'a> {
             rotation: Rotation::default(),
             border_radius: Radius::default(),
             opacity: 1.0,
+            paused: false,
         }
     }
 
@@ -229,6 +231,12 @@ impl<'a> Gif<'a> {
     /// and `1.0` meaning completely opaque.
     pub fn opacity(mut self, opacity: impl Into<f32>) -> Self {
         self.opacity = opacity.into();
+        self
+    }
+
+    /// Sets whether playback should pause on the current frame.
+    pub fn set_paused(mut self, paused: bool) -> Self {
+        self.paused = paused;
         self
     }
 }
@@ -301,6 +309,10 @@ where
         _viewport: &Rectangle,
     ) {
         let state = tree.state.downcast_mut::<State>();
+
+        if self.paused {
+            return;
+        }
 
         if let Event::Window(window::Event::RedrawRequested(now)) = event {
             let elapsed = now.duration_since(state.current.started);

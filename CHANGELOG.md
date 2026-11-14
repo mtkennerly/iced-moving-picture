@@ -1,3 +1,8 @@
+## Unreleased
+
+* Added:
+  * Control playback: `set_paused`
+
 ## v0.2.0 (2025-12-12)
 
 * Added:

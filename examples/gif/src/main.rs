@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use iced::{
-    widget::{container, row},
+    widget::{button, column, container, row, text},
     window, Element, Length, Size, Task,
 };
 use iced_moving_picture::widget::gif;
@@ -17,14 +17,16 @@ fn main() {
         .unwrap()
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Message {
     Loaded(Result<gif::Frames, gif::Error>),
+    ToggledPause,
 }
 
 #[derive(Default)]
 struct App {
     frames: Option<gif::Frames>,
+    paused: bool,
 }
 
 impl App {
@@ -43,19 +45,30 @@ impl App {
     }
 
     fn update(&mut self, message: Message) -> Task<Message> {
-        let Message::Loaded(frames) = message;
-
-        self.frames = frames.ok();
+        match message {
+            Message::Loaded(frames) => {
+                self.frames = frames.ok();
+            }
+            Message::ToggledPause => {
+                self.paused = !self.paused;
+            }
+        }
 
         Task::none()
     }
 
     fn view(&self) -> Element<Message> {
         if let Some(frames) = self.frames.as_ref() {
-            container(gif(frames))
-                .center_x(Length::Fill)
-                .center_y(Length::Fill)
-                .into()
+            column![
+                button(text(if self.paused { "Resume" } else { "Pause" }))
+                    .on_press(Message::ToggledPause),
+                container(gif(frames).set_paused(self.paused))
+                    .center_x(Length::Fill)
+                    .center_y(Length::Fill),
+            ]
+            .spacing(8)
+            .padding(4)
+            .into()
         } else {
             row![].into()
         }
