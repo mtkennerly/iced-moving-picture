@@ -1,10 +1,10 @@
 use std::path::PathBuf;
 
 use iced::{
-    widget::{button, column, container, row, text},
+    widget::{button, column, container, row, slider, text},
     window, Element, Length, Size, Task,
 };
-use iced_moving_picture::widget::apng;
+use iced_moving_picture::{widget::apng, Position};
 
 fn main() {
     iced::application(App::new, App::update, App::view)
@@ -22,6 +22,7 @@ enum Message {
     Loaded(Result<apng::Frames, apng::Error>),
     ToggledPause,
     NewFrame(usize),
+    Seeked(usize),
 }
 
 #[derive(Default)]
@@ -56,6 +57,12 @@ impl App {
             Message::NewFrame(index) => {
                 self.frame_index = index;
             }
+            Message::Seeked(index) => {
+                self.frame_index = index;
+                if let Some(frames) = &self.frames {
+                    frames.seek(Position::Frame(index));
+                }
+            }
         }
 
         Task::none()
@@ -63,6 +70,8 @@ impl App {
 
     fn view(&self) -> Element<Message> {
         if let Some(frames) = self.frames.as_ref() {
+            let total = frames.len();
+
             let image = apng(frames)
                 .set_paused(self.paused)
                 .on_new_frame(Message::NewFrame);
@@ -71,7 +80,7 @@ impl App {
                 row![
                     button(text(if self.paused { "Resume" } else { "Pause" }))
                         .on_press(Message::ToggledPause),
-                    text(format!("frame: {}/{}", self.frame_index, frames.total())),
+                    text(format!("frame: {}/{}", self.frame_index, total)),
                     text(format!(
                         "time: {:.2}/{:.2}",
                         frames.duration_at(self.frame_index).as_secs_f64(),
@@ -79,6 +88,10 @@ impl App {
                     )),
                 ]
                 .spacing(8),
+                slider(0.0..=(total as f64), self.frame_index as f64, |v| {
+                    Message::Seeked(v as usize)
+                })
+                .width(Length::Fill),
                 container(image)
                     .center_x(Length::Fill)
                     .center_y(Length::Fill),

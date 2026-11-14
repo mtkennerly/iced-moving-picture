@@ -2,10 +2,11 @@
 use std::{
     io,
     path::Path,
-    sync::Arc,
+    sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
 
+use crate::Position;
 use iced_runtime::Task;
 use iced_widget::core::{
     border::Radius,
@@ -48,13 +49,14 @@ impl std::convert::From<std::io::Error> for Error {
 }
 
 /// The frames of a decoded APNG
-#[derive(Clone, ignorable::Debug)]
+#[derive(ignorable::Debug)]
 pub struct Frames {
     #[ignored(Debug)]
     first: Frame,
     #[ignored(Debug)]
     frames: Vec<Frame>,
     total_bytes: u64,
+    pending_seek: Mutex<Option<usize>>,
 }
 
 impl Frames {
@@ -112,12 +114,14 @@ impl Frames {
             total_bytes,
             first,
             frames,
+            pending_seek: Mutex::new(None),
         })
     }
 
     /// Returns the total number of frames.
-    pub fn total(&self) -> usize {
-        1 + self.frames.len()
+    #[allow(clippy::len_without_is_empty)]
+    pub fn len(&self) -> usize {
+        self.frames.len()
     }
 
     /// Returns the total duration of a single loop through all frames.
@@ -132,6 +136,42 @@ impl Frames {
             .take(index)
             .map(|frame| frame.delay)
             .sum()
+    }
+
+    /// Queue a seek to a specific position.
+    pub fn seek(&self, position: Position) {
+        *self.pending_seek.lock().unwrap() = Some(self.frame_at_position(&position));
+    }
+
+    fn take_seek(&self) -> Option<usize> {
+        self.pending_seek.lock().unwrap().take()
+    }
+
+    fn frame_at_position(&self, position: &Position) -> usize {
+        match position {
+            Position::Frame(n) => (*n).min(self.frames.len() - 1),
+            Position::Time(t) => {
+                let mut acc = Duration::ZERO;
+                for (i, frame) in self.frames.iter().enumerate() {
+                    if *t < acc + frame.delay {
+                        return i;
+                    }
+                    acc += frame.delay;
+                }
+                self.frames.len() - 1
+            }
+        }
+    }
+}
+
+impl Clone for Frames {
+    fn clone(&self) -> Self {
+        Self {
+            first: self.first.clone(),
+            frames: self.frames.clone(),
+            total_bytes: self.total_bytes,
+            pending_seek: Mutex::new(None),
+        }
     }
 }
 
@@ -334,6 +374,17 @@ where
         _viewport: &Rectangle,
     ) {
         let state = tree.state.downcast_mut::<State>();
+
+        if let Some(index) = self.frames.take_seek() {
+            if state.index != index {
+                state.index = index;
+                state.current = self.frames.frames[index].clone().into();
+
+                if let Some(f) = &self.on_new_frame {
+                    shell.publish(f(index));
+                }
+            }
+        }
 
         if self.paused {
             return;

@@ -3,8 +3,9 @@
 * Added:
   * Control playback:
     * `{Gif, Apng}::set_paused`
+    * `Frames::seek`
   * Check playback:
-    * `Frames::{total, duration, duration_at}`
+    * `Frames::{len, duration, duration_at}`
     * `{Gif, Apng}::on_new_frame`
 
 ## v0.2.0 (2025-12-12)
