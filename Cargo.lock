@@ -1571,6 +1571,7 @@ dependencies = [
  "iced_futures",
  "iced_runtime",
  "iced_widget",
+ "ignorable",
  "image 0.24.9",
  "thiserror 1.0.69",
  "tokio",
@@ -1680,6 +1681,17 @@ dependencies = [
  "web-sys",
  "window_clipboard",
  "winit",
+]
+
+[[package]]
+name = "ignorable"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77004198f639a008a2b257a39bd7daec149afe5f00003c064948d4a75dc46be7"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

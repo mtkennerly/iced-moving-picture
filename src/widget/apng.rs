@@ -1,6 +1,6 @@
 //! Display an APNG in your user interface
 use std::{
-    fmt, io,
+    io,
     path::Path,
     sync::Arc,
     time::{Duration, Instant},
@@ -48,17 +48,13 @@ impl std::convert::From<std::io::Error> for Error {
 }
 
 /// The frames of a decoded APNG
-#[derive(Clone)]
+#[derive(Clone, ignorable::Debug)]
 pub struct Frames {
+    #[ignored(Debug)]
     first: Frame,
+    #[ignored(Debug)]
     frames: Vec<Frame>,
     total_bytes: u64,
-}
-
-impl fmt::Debug for Frames {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Frames").finish()
-    }
 }
 
 impl Frames {
@@ -118,6 +114,25 @@ impl Frames {
             frames,
         })
     }
+
+    /// Returns the total number of frames.
+    pub fn total(&self) -> usize {
+        1 + self.frames.len()
+    }
+
+    /// Returns the total duration of a single loop through all frames.
+    pub fn duration(&self) -> Duration {
+        self.frames.iter().map(|frame| frame.delay).sum()
+    }
+
+    /// Returns the elapsed duration at the start of the given frame.
+    pub fn duration_at(&self, index: usize) -> Duration {
+        self.frames
+            .iter()
+            .take(index)
+            .map(|frame| frame.delay)
+            .sum()
+    }
 }
 
 #[derive(Clone)]
@@ -159,8 +174,8 @@ impl From<Frame> for Current {
 }
 
 /// A frame that displays an APNG while keeping aspect ratio
-#[derive(Debug)]
-pub struct Apng<'a> {
+#[derive(ignorable::Debug)]
+pub struct Apng<'a, Message> {
     frames: &'a Frames,
     width: Length,
     height: Length,
@@ -170,9 +185,11 @@ pub struct Apng<'a> {
     border_radius: Radius,
     opacity: f32,
     paused: bool,
+    #[ignored(Debug)]
+    on_new_frame: Option<Box<dyn Fn(usize) -> Message>>,
 }
 
-impl<'a> Apng<'a> {
+impl<'a, Message> Apng<'a, Message> {
     /// Creates a new [`Apng`] with the given [`Frames`]
     pub fn new(frames: &'a Frames) -> Self {
         Apng {
@@ -185,6 +202,7 @@ impl<'a> Apng<'a> {
             border_radius: Radius::default(),
             opacity: 1.0,
             paused: false,
+            on_new_frame: None,
         }
     }
 
@@ -240,9 +258,15 @@ impl<'a> Apng<'a> {
         self.paused = paused;
         self
     }
+
+    /// Sets message when a new frame becomes visible.
+    pub fn on_new_frame(mut self, f: impl Fn(usize) -> Message + 'static) -> Self {
+        self.on_new_frame = Some(Box::new(f));
+        self
+    }
 }
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Apng<'a>
+impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Apng<'a, Message>
 where
     Renderer: iced_image::Renderer<Handle = Handle>,
 {
@@ -323,6 +347,10 @@ where
 
                 state.current = self.frames.frames[state.index].clone().into();
 
+                if let Some(f) = &self.on_new_frame {
+                    shell.publish(f(state.index));
+                }
+
                 shell
                     .request_redraw_at(window::RedrawRequest::At(*now + state.current.frame.delay));
             } else {
@@ -399,11 +427,12 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Apng<'a>> for Element<'a, Message, Theme, Renderer>
+impl<'a, Message: 'a, Theme, Renderer> From<Apng<'a, Message>>
+    for Element<'a, Message, Theme, Renderer>
 where
     Renderer: iced_image::Renderer<Handle = Handle> + 'a,
 {
-    fn from(apng: Apng<'a>) -> Element<'a, Message, Theme, Renderer> {
+    fn from(apng: Apng<'a, Message>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(apng)
     }
 }

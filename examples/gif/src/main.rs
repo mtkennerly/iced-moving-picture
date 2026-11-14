@@ -21,12 +21,14 @@ fn main() {
 enum Message {
     Loaded(Result<gif::Frames, gif::Error>),
     ToggledPause,
+    NewFrame(usize),
 }
 
 #[derive(Default)]
 struct App {
     frames: Option<gif::Frames>,
     paused: bool,
+    frame_index: usize,
 }
 
 impl App {
@@ -52,6 +54,9 @@ impl App {
             Message::ToggledPause => {
                 self.paused = !self.paused;
             }
+            Message::NewFrame(index) => {
+                self.frame_index = index;
+            }
         }
 
         Task::none()
@@ -59,10 +64,23 @@ impl App {
 
     fn view(&self) -> Element<Message> {
         if let Some(frames) = self.frames.as_ref() {
+            let image = gif(frames)
+                .set_paused(self.paused)
+                .on_new_frame(Message::NewFrame);
+
             column![
-                button(text(if self.paused { "Resume" } else { "Pause" }))
-                    .on_press(Message::ToggledPause),
-                container(gif(frames).set_paused(self.paused))
+                row![
+                    button(text(if self.paused { "Resume" } else { "Pause" }))
+                        .on_press(Message::ToggledPause),
+                    text(format!("frame: {}/{}", self.frame_index, frames.total())),
+                    text(format!(
+                        "time: {:.2}/{:.2}",
+                        frames.duration_at(self.frame_index).as_secs_f64(),
+                        frames.duration().as_secs_f64()
+                    )),
+                ]
+                .spacing(8),
+                container(image)
                     .center_x(Length::Fill)
                     .center_y(Length::Fill),
             ]

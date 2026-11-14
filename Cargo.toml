@@ -28,6 +28,7 @@ async-fs = { version = "1.6", optional = true }
 iced_futures = "0.14"
 iced_runtime = "0.14"
 iced_widget = { version = "0.14", features = ["image"] }
+ignorable = "0.1.4"
 image = { version = "0.24", features = ["gif"] }
 thiserror = "1.0"
 tokio = { version = "1", optional = true, features = ["fs", "io-util"] }

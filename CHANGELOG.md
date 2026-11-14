@@ -1,7 +1,11 @@
 ## Unreleased
 
 * Added:
-  * Control playback: `set_paused`
+  * Control playback:
+    * `{Gif, Apng}::set_paused`
+  * Check playback:
+    * `Frames::{total, duration, duration_at}`
+    * `{Gif, Apng}::on_new_frame`
 
 ## v0.2.0 (2025-12-12)
 
