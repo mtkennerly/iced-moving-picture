@@ -1,15 +1,10 @@
-pub mod apng;
-pub mod gif;
+pub mod moving_picture;
 
-pub use apng::Apng;
-pub use gif::Gif;
+pub use moving_picture::MovingPicture;
 
-/// Creates a new [`Gif`] with the given [`gif::Frames`]
-pub fn gif<'a, Message>(frames: &'a gif::Frames) -> Gif<'a, Message> {
-    Gif::new(frames)
-}
-
-/// Creates a new [`Apng`] with the given [`apng::Frames`]
-pub fn apng<'a, Message>(frames: &'a apng::Frames) -> Apng<'a, Message> {
-    Apng::new(frames)
+/// Creates a new [`MovingPicture`] with the given [`moving_picture::Frames`]
+pub fn moving_picture<'a, Message>(
+    frames: &'a moving_picture::Frames,
+) -> MovingPicture<'a, Message> {
+    MovingPicture::new(frames)
 }

@@ -1,4 +1,4 @@
-//! Display a GIF in your user interface
+//! Display a moving picture in your user interface
 use std::{
     io,
     path::Path,
@@ -6,7 +6,6 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crate::Position;
 use iced_runtime::Task;
 use iced_widget::core::{
     border::Radius,
@@ -18,14 +17,40 @@ use iced_widget::core::{
     window, Clipboard, ContentFit, Element, Event, Layout, Length, Point, Rectangle, Rotation,
     Shell, Size, Vector, Widget,
 };
-use image::{codecs::gif, AnimationDecoder, ImageDecoder};
+use image::{
+    codecs::{gif, png},
+    AnimationDecoder, ImageDecoder,
+};
 
 #[cfg(not(feature = "tokio"))]
 use iced_futures::futures::{AsyncRead, AsyncReadExt};
 #[cfg(feature = "tokio")]
 use tokio::io::{AsyncRead, AsyncReadExt};
 
-/// Error loading or decoding a gif
+#[derive(Debug)]
+pub enum Position {
+    Frame(usize),
+    Time(Duration),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Kind {
+    Apng,
+    Gif,
+}
+
+impl std::fmt::Display for Kind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let label = match self {
+            Self::Apng => "APNG",
+            Self::Gif => "GIF",
+        };
+
+        label.fmt(f)
+    }
+}
+
+/// Error loading or decoding an image
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum Error {
     /// Decode error
@@ -48,7 +73,7 @@ impl std::convert::From<std::io::Error> for Error {
     }
 }
 
-/// The frames of a decoded gif
+/// The frames of a decoded image
 #[derive(ignorable::Debug)]
 pub struct Frames {
     #[ignored(Debug)]
@@ -56,12 +81,13 @@ pub struct Frames {
     #[ignored(Debug)]
     frames: Vec<Frame>,
     total_bytes: u64,
+    kind: Kind,
     pending_seek: Mutex<Option<usize>>,
 }
 
 impl Frames {
     /// Load [`Frames`] from the supplied path
-    pub fn load_from_path(path: impl AsRef<Path>) -> Task<Result<Frames, Error>> {
+    pub fn load_from_path(path: impl AsRef<Path>, kind: Kind) -> Task<Result<Frames, Error>> {
         #[cfg(feature = "tokio")]
         use tokio::fs::File;
         #[cfg(feature = "tokio")]
@@ -77,14 +103,14 @@ impl Frames {
         let f = async move {
             let reader = BufReader::new(File::open(path).await?);
 
-            Self::from_reader(reader).await
+            Self::from_reader(reader, kind).await
         };
 
         Task::perform(f, std::convert::identity)
     }
 
     /// Decode [`Frames`] from the supplied async reader
-    pub async fn from_reader<R: AsyncRead>(reader: R) -> Result<Self, Error> {
+    pub async fn from_reader<R: AsyncRead>(reader: R, kind: Kind) -> Result<Self, Error> {
         use iced_futures::futures::pin_mut;
 
         pin_mut!(reader);
@@ -93,28 +119,59 @@ impl Frames {
 
         reader.read_to_end(&mut bytes).await?;
 
-        Self::from_bytes(bytes)
+        Self::from_bytes(bytes, kind)
     }
 
     /// Decode [`Frames`] from the supplied bytes
-    pub fn from_bytes(bytes: Vec<u8>) -> Result<Self, Error> {
-        let decoder = gif::GifDecoder::new(io::Cursor::new(bytes))?;
+    pub fn from_bytes(bytes: Vec<u8>, kind: Kind) -> Result<Self, Error> {
+        match kind {
+            Kind::Apng => {
+                let decoder = png::PngDecoder::new(io::Cursor::new(bytes))?;
 
-        let total_bytes = decoder.total_bytes();
+                let total_bytes = decoder.total_bytes();
 
-        let frames = decoder
-            .into_frames()
-            .map(|result| result.map(Frame::from))
-            .collect::<Result<Vec<_>, _>>()?;
+                let frames = decoder
+                    .apng()
+                    .into_frames()
+                    .map(|result| result.map(Frame::from))
+                    .collect::<Result<Vec<_>, _>>()?;
 
-        let first = frames.first().cloned().unwrap();
+                let first = frames.first().cloned().unwrap();
 
-        Ok(Frames {
-            total_bytes,
-            first,
-            frames,
-            pending_seek: Mutex::new(None),
-        })
+                Ok(Frames {
+                    total_bytes,
+                    first,
+                    frames,
+                    kind,
+                    pending_seek: Mutex::new(None),
+                })
+            }
+            Kind::Gif => {
+                let decoder = gif::GifDecoder::new(io::Cursor::new(bytes))?;
+
+                let total_bytes = decoder.total_bytes();
+
+                let frames = decoder
+                    .into_frames()
+                    .map(|result| result.map(Frame::from))
+                    .collect::<Result<Vec<_>, _>>()?;
+
+                let first = frames.first().cloned().unwrap();
+
+                Ok(Frames {
+                    total_bytes,
+                    first,
+                    frames,
+                    kind,
+                    pending_seek: Mutex::new(None),
+                })
+            }
+        }
+    }
+
+    /// Returns the type of image.
+    pub fn kind(&self) -> Kind {
+        self.kind
     }
 
     /// Returns the total number of frames.
@@ -169,6 +226,7 @@ impl Clone for Frames {
             first: self.first.clone(),
             frames: self.frames.clone(),
             total_bytes: self.total_bytes,
+            kind: self.kind,
             pending_seek: Mutex::new(None),
         }
     }
@@ -212,9 +270,9 @@ impl From<Frame> for Current {
     }
 }
 
-/// A frame that displays a GIF while keeping aspect ratio
+/// A frame that displays an image while keeping aspect ratio
 #[derive(ignorable::Debug)]
-pub struct Gif<'a, Message> {
+pub struct MovingPicture<'a, Message> {
     frames: &'a Frames,
     width: Length,
     height: Length,
@@ -228,10 +286,10 @@ pub struct Gif<'a, Message> {
     on_new_frame: Option<Box<dyn Fn(usize) -> Message>>,
 }
 
-impl<'a, Message> Gif<'a, Message> {
-    /// Creates a new [`Gif`] with the given [`Frames`]
+impl<'a, Message> MovingPicture<'a, Message> {
+    /// Creates a new [`MovingPicture`] with the given [`Frames`]
     pub fn new(frames: &'a Frames) -> Self {
-        Gif {
+        MovingPicture {
             frames,
             width: Length::Shrink,
             height: Length::Shrink,
@@ -245,13 +303,13 @@ impl<'a, Message> Gif<'a, Message> {
         }
     }
 
-    /// Sets the width of the [`Gif`] boundaries.
+    /// Sets the width of the boundaries.
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
         self
     }
 
-    /// Sets the height of the [`Gif`] boundaries.
+    /// Sets the height of the boundaries.
     pub fn height(mut self, height: Length) -> Self {
         self.height = height;
         self
@@ -305,7 +363,7 @@ impl<'a, Message> Gif<'a, Message> {
     }
 }
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Gif<'a, Message>
+impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for MovingPicture<'a, Message>
 where
     Renderer: iced_image::Renderer<Handle = Handle>,
 {
@@ -328,11 +386,9 @@ where
     fn diff(&self, tree: &mut Tree) {
         let state = tree.state.downcast_mut::<State>();
 
-        // Reset state if new gif Frames is used w/
-        // same state tree.
+        // Reset state if new Frames is used w/ same state tree.
         //
-        // Total bytes of the gif should be a good enough
-        // proxy for it changing.
+        // Total bytes should be a good enough proxy for it changing.
         if state.total_bytes != self.frames.total_bytes {
             *state = State {
                 index: 0,
@@ -477,12 +533,12 @@ where
     }
 }
 
-impl<'a, Message: 'a, Theme, Renderer> From<Gif<'a, Message>>
+impl<'a, Message: 'a, Theme, Renderer> From<MovingPicture<'a, Message>>
     for Element<'a, Message, Theme, Renderer>
 where
     Renderer: iced_image::Renderer<Handle = Handle> + 'a,
 {
-    fn from(gif: Gif<'a, Message>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(gif)
+    fn from(w: MovingPicture<'a, Message>) -> Element<'a, Message, Theme, Renderer> {
+        Element::new(w)
     }
 }

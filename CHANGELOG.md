@@ -1,12 +1,16 @@
 ## Unreleased
 
+* Changed:
+  * Consolidated the `Gif` and `Apng` widgets into a single `MovingPicture` widget.
+    The API is the same, except that `load_from_path`, `from_reader`, and `from_bytes`
+    now take a `Kind` argument.
 * Added:
   * Control playback:
-    * `{Gif, Apng}::set_paused`
     * `Frames::seek`
+    * `MovingPicture::set_paused`
   * Check playback:
     * `Frames::{len, duration, duration_at}`
-    * `{Gif, Apng}::on_new_frame`
+    * `MovingPicture::on_new_frame`
 
 ## v0.2.0 (2025-12-12)
 
