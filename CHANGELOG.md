@@ -1,4 +1,4 @@
-## Unreleased
+## v0.3.0 (2026-11-15)
 
 * Changed:
   * Consolidated the `Gif` and `Apng` widgets into a single `MovingPicture` widget.
