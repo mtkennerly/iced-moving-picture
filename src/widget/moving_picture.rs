@@ -27,6 +27,8 @@ use iced_futures::futures::{AsyncRead, AsyncReadExt};
 #[cfg(feature = "tokio")]
 use tokio::io::{AsyncRead, AsyncReadExt};
 
+const DEFAULT_SPEED: f64 = 1.0;
+
 fn apply_speed(duration: Duration, speed: f64) -> Duration {
     Duration::from_nanos((duration.as_nanos() as f64 / speed) as u64)
 }
@@ -185,6 +187,7 @@ impl Frames {
     }
 
     /// Returns the total duration of a single loop through all frames.
+    /// If you haven't customized the playback speed, pass [`DEFAULT_SPEED`].
     pub fn duration(&self, speed: f64) -> Duration {
         let total = self
             .frames
@@ -195,6 +198,7 @@ impl Frames {
     }
 
     /// Returns the elapsed duration at the start of the given frame.
+    /// If you haven't customized the playback speed, pass [`DEFAULT_SPEED`].
     pub fn duration_at(&self, index: usize, speed: f64) -> Duration {
         let total = self
             .frames
@@ -316,7 +320,7 @@ impl<'a, Message> MovingPicture<'a, Message> {
             opacity: 1.0,
             paused: false,
             looping: true,
-            speed: 1.0,
+            speed: DEFAULT_SPEED,
             on_new_frame: None,
             on_last_frame: None,
         }
@@ -381,7 +385,7 @@ impl<'a, Message> MovingPicture<'a, Message> {
         self
     }
 
-    /// Sets playback speed multiplier. Default is 1.0.
+    /// Sets playback speed multiplier. Default is [`DEFAULT_SPEED`].
     pub fn speed(mut self, speed: f64) -> Self {
         self.speed = speed;
         self

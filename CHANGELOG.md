@@ -8,7 +8,8 @@
   * Control playback:
     * `Frames::seek`
     * `MovingPicture::{paused, looping, speed}`
-  * Check playback:
+    * `DEFAULT_SPEED`
+  * Inspect playback:
     * `Frames::{len, duration, duration_at}`
     * `MovingPicture::{on_new_frame, on_last_frame}`
 
