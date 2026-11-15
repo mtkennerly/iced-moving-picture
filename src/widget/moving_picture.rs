@@ -254,6 +254,7 @@ struct State {
     index: usize,
     current: Current,
     total_bytes: u64,
+    ended: bool,
 }
 
 struct Current {
@@ -282,8 +283,11 @@ pub struct MovingPicture<'a, Message> {
     border_radius: Radius,
     opacity: f32,
     paused: bool,
+    looping: bool,
     #[ignored(Debug)]
     on_new_frame: Option<Box<dyn Fn(usize) -> Message>>,
+    #[ignored(Debug)]
+    on_last_frame: Option<Box<dyn Fn() -> Message>>,
 }
 
 impl<'a, Message> MovingPicture<'a, Message> {
@@ -299,7 +303,9 @@ impl<'a, Message> MovingPicture<'a, Message> {
             border_radius: Radius::default(),
             opacity: 1.0,
             paused: false,
+            looping: true,
             on_new_frame: None,
+            on_last_frame: None,
         }
     }
 
@@ -356,9 +362,21 @@ impl<'a, Message> MovingPicture<'a, Message> {
         self
     }
 
-    /// Sets message when a new frame becomes visible.
+    /// Sets whether playback should loop to the first frame after the last frame.
+    pub fn set_looping(mut self, looping: bool) -> Self {
+        self.looping = looping;
+        self
+    }
+
+    /// Sets message to emit when a new frame becomes visible.
     pub fn on_new_frame(mut self, f: impl Fn(usize) -> Message + 'static) -> Self {
         self.on_new_frame = Some(Box::new(f));
+        self
+    }
+
+    /// Sets message to emit after playing the last frame.
+    pub fn on_last_frame(mut self, f: impl Fn() -> Message + 'static) -> Self {
+        self.on_last_frame = Some(Box::new(f));
         self
     }
 }
@@ -380,6 +398,7 @@ where
             index: 0,
             current: self.frames.first.clone().into(),
             total_bytes: self.frames.total_bytes,
+            ended: false,
         })
     }
 
@@ -394,6 +413,7 @@ where
                 index: 0,
                 current: self.frames.first.clone().into(),
                 total_bytes: self.frames.total_bytes,
+                ended: false,
             };
         }
     }
@@ -434,6 +454,7 @@ where
             if state.index != index {
                 state.index = index;
                 state.current = self.frames.frames[index].clone().into();
+                state.ended = false;
 
                 if let Some(f) = &self.on_new_frame {
                     shell.publish(f(index));
@@ -449,12 +470,35 @@ where
             let elapsed = now.duration_since(state.current.started);
 
             if elapsed > state.current.frame.delay {
+                let is_last_frame = state.index == self.frames.frames.len() - 1;
+                let already_ended = state.ended;
+
+                if is_last_frame && !self.looping {
+                    if !state.ended {
+                        state.ended = true;
+
+                        if let Some(f) = &self.on_last_frame {
+                            shell.publish(f());
+                        }
+                    }
+
+                    return;
+                } else {
+                    state.ended = false;
+                }
+
                 state.index = (state.index + 1) % self.frames.frames.len();
 
                 state.current = self.frames.frames[state.index].clone().into();
 
                 if let Some(f) = &self.on_new_frame {
                     shell.publish(f(state.index));
+                }
+
+                if is_last_frame && !already_ended {
+                    if let Some(f) = &self.on_last_frame {
+                        shell.publish(f());
+                    }
                 }
 
                 shell

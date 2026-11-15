@@ -21,7 +21,9 @@ fn main() {
 enum Message {
     Loaded(Result<moving_picture::Frames, moving_picture::Error>),
     ToggledPause,
+    ToggledLoop,
     NewFrame(usize),
+    LastFrame,
     Seeked(usize),
     Kind(moving_picture::Kind),
 }
@@ -30,6 +32,7 @@ struct App {
     gif: Option<moving_picture::Frames>,
     apng: Option<moving_picture::Frames>,
     paused: bool,
+    looping: bool,
     frame_index: usize,
     kind: moving_picture::Kind,
 }
@@ -40,6 +43,7 @@ impl Default for App {
             gif: None,
             apng: None,
             paused: false,
+            looping: true,
             frame_index: 0,
             kind: moving_picture::Kind::Gif,
         }
@@ -83,8 +87,14 @@ impl App {
             Message::ToggledPause => {
                 self.paused = !self.paused;
             }
+            Message::ToggledLoop => {
+                self.looping = !self.looping;
+            }
             Message::NewFrame(index) => {
                 self.frame_index = index;
+            }
+            Message::LastFrame => {
+                println!("played last frame");
             }
             Message::Seeked(index) => {
                 self.frame_index = index;
@@ -118,7 +128,9 @@ impl App {
 
             let image = moving_picture(frames)
                 .set_paused(self.paused)
-                .on_new_frame(Message::NewFrame);
+                .set_looping(self.looping)
+                .on_new_frame(Message::NewFrame)
+                .on_last_frame(|| Message::LastFrame);
 
             column![
                 row![
@@ -129,7 +141,16 @@ impl App {
                     ),
                     button(text(if self.paused { "Resume" } else { "Pause" }))
                         .on_press(Message::ToggledPause),
-                    text(format!("frame: {}/{}", self.frame_index, total)),
+                    button(text(if self.looping {
+                        "Stop loop"
+                    } else {
+                        "Start loop"
+                    }))
+                    .on_press(Message::ToggledLoop),
+                ]
+                .spacing(8),
+                row![
+                    text(format!("frame: {}/{}", self.frame_index + 1, total)),
                     text(format!(
                         "time: {:.2}/{:.2}",
                         frames.duration_at(self.frame_index).as_secs_f64(),
@@ -137,7 +158,7 @@ impl App {
                     )),
                 ]
                 .spacing(8),
-                slider(0.0..=(total as f64), self.frame_index as f64, |v| {
+                slider(0.0..=((total - 1) as f64), self.frame_index as f64, |v| {
                     Message::Seeked(v as usize)
                 })
                 .width(Length::Fill),
