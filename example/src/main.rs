@@ -127,8 +127,8 @@ impl App {
             let total = frames.len();
 
             let image = moving_picture(frames)
-                .set_paused(self.paused)
-                .set_looping(self.looping)
+                .paused(self.paused)
+                .looping(self.looping)
                 .on_new_frame(Message::NewFrame)
                 .on_last_frame(|| Message::LastFrame);
 

@@ -357,13 +357,13 @@ impl<'a, Message> MovingPicture<'a, Message> {
     }
 
     /// Sets whether playback should pause on the current frame.
-    pub fn set_paused(mut self, paused: bool) -> Self {
+    pub fn paused(mut self, paused: bool) -> Self {
         self.paused = paused;
         self
     }
 
     /// Sets whether playback should loop to the first frame after the last frame.
-    pub fn set_looping(mut self, looping: bool) -> Self {
+    pub fn looping(mut self, looping: bool) -> Self {
         self.looping = looping;
         self
     }
