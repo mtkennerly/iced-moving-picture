@@ -1,4 +1,4 @@
-## Unreleased
+## v0.3.1 (2026-11-15)
 
 * Fixed:
   * `DEFAULT_SPEED` wasn't public.
