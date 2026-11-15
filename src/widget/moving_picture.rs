@@ -137,7 +137,7 @@ impl Frames {
                 let total_bytes = decoder.total_bytes();
 
                 let frames = decoder
-                    .apng()
+                    .apng()?
                     .into_frames()
                     .map(|result| result.map(Frame::from))
                     .collect::<Result<Vec<_>, _>>()?;

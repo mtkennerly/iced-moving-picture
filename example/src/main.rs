@@ -132,6 +132,15 @@ impl App {
             Message::Kind(kind) => {
                 self.kind = kind;
                 self.frame_index = 0;
+
+                let frames = match kind {
+                    moving_picture::Kind::Apng => self.apng.as_mut(),
+                    moving_picture::Kind::Gif => self.gif.as_mut(),
+                };
+
+                if let Some(frames) = frames {
+                    frames.seek(moving_picture::Position::Frame(0));
+                }
             }
         }
 
