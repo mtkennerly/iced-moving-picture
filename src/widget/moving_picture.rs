@@ -27,7 +27,7 @@ use iced_futures::futures::{AsyncRead, AsyncReadExt};
 #[cfg(feature = "tokio")]
 use tokio::io::{AsyncRead, AsyncReadExt};
 
-const DEFAULT_SPEED: f64 = 1.0;
+pub const DEFAULT_SPEED: f64 = 1.0;
 
 fn apply_speed(duration: Duration, speed: f64) -> Duration {
     Duration::from_nanos((duration.as_nanos() as f64 / speed) as u64)

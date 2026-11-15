@@ -63,7 +63,7 @@ impl Default for App {
             looping: true,
             frame_index: 0,
             kind: moving_picture::Kind::Gif,
-            speed: Speed(1.0),
+            speed: Speed(moving_picture::DEFAULT_SPEED),
         }
     }
 }
@@ -172,7 +172,7 @@ impl App {
                         Message::Kind
                     ),
                     pick_list(
-                        vec![Speed(0.5), Speed(1.0), Speed(2.0)],
+                        vec![Speed(0.5), Speed(moving_picture::DEFAULT_SPEED), Speed(2.0)],
                         Some(self.speed),
                         Message::SetSpeed
                     ),
