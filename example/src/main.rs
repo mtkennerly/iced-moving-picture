@@ -17,11 +17,27 @@ fn main() {
         .unwrap()
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct Speed(f64);
+
+impl std::fmt::Display for Speed {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}x", self.0)
+    }
+}
+
+impl From<Speed> for f64 {
+    fn from(speed: Speed) -> Self {
+        speed.0
+    }
+}
+
 #[derive(Debug, Clone)]
 enum Message {
     Loaded(Result<moving_picture::Frames, moving_picture::Error>),
     ToggledPause,
     ToggledLoop,
+    SetSpeed(Speed),
     NewFrame(usize),
     LastFrame,
     Seeked(usize),
@@ -35,6 +51,7 @@ struct App {
     looping: bool,
     frame_index: usize,
     kind: moving_picture::Kind,
+    speed: Speed,
 }
 
 impl Default for App {
@@ -46,6 +63,7 @@ impl Default for App {
             looping: true,
             frame_index: 0,
             kind: moving_picture::Kind::Gif,
+            speed: Speed(1.0),
         }
     }
 }
@@ -90,6 +108,9 @@ impl App {
             Message::ToggledLoop => {
                 self.looping = !self.looping;
             }
+            Message::SetSpeed(speed) => {
+                self.speed = speed;
+            }
             Message::NewFrame(index) => {
                 self.frame_index = index;
             }
@@ -125,10 +146,12 @@ impl App {
 
         if let Some(frames) = frames {
             let total = frames.len();
+            let speed = f64::from(self.speed);
 
             let image = moving_picture(frames)
                 .paused(self.paused)
                 .looping(self.looping)
+                .speed(speed)
                 .on_new_frame(Message::NewFrame)
                 .on_last_frame(|| Message::LastFrame);
 
@@ -138,6 +161,11 @@ impl App {
                         vec![moving_picture::Kind::Gif, moving_picture::Kind::Apng],
                         Some(self.kind),
                         Message::Kind
+                    ),
+                    pick_list(
+                        vec![Speed(0.5), Speed(1.0), Speed(2.0)],
+                        Some(self.speed),
+                        Message::SetSpeed
                     ),
                     button(text(if self.paused { "Resume" } else { "Pause" }))
                         .on_press(Message::ToggledPause),
@@ -153,8 +181,8 @@ impl App {
                     text(format!("frame: {}/{}", self.frame_index + 1, total)),
                     text(format!(
                         "time: {:.2}/{:.2}",
-                        frames.duration_at(self.frame_index).as_secs_f64(),
-                        frames.duration().as_secs_f64()
+                        frames.duration_at(self.frame_index, speed).as_secs_f64(),
+                        frames.duration(speed).as_secs_f64()
                     )),
                 ]
                 .spacing(8),

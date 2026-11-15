@@ -7,7 +7,7 @@
 * Added:
   * Control playback:
     * `Frames::seek`
-    * `MovingPicture::{paused, looping}`
+    * `MovingPicture::{paused, looping, speed}`
   * Check playback:
     * `Frames::{len, duration, duration_at}`
     * `MovingPicture::{on_new_frame, on_last_frame}`

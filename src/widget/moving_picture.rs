@@ -27,6 +27,10 @@ use iced_futures::futures::{AsyncRead, AsyncReadExt};
 #[cfg(feature = "tokio")]
 use tokio::io::{AsyncRead, AsyncReadExt};
 
+fn apply_speed(duration: Duration, speed: f64) -> Duration {
+    Duration::from_nanos((duration.as_nanos() as f64 / speed) as u64)
+}
+
 #[derive(Debug)]
 pub enum Position {
     Frame(usize),
@@ -181,17 +185,24 @@ impl Frames {
     }
 
     /// Returns the total duration of a single loop through all frames.
-    pub fn duration(&self) -> Duration {
-        self.frames.iter().map(|frame| frame.delay).sum()
+    pub fn duration(&self, speed: f64) -> Duration {
+        let total = self
+            .frames
+            .iter()
+            .map(|frame| frame.delay)
+            .sum::<Duration>();
+        apply_speed(total, speed)
     }
 
     /// Returns the elapsed duration at the start of the given frame.
-    pub fn duration_at(&self, index: usize) -> Duration {
-        self.frames
+    pub fn duration_at(&self, index: usize, speed: f64) -> Duration {
+        let total = self
+            .frames
             .iter()
             .take(index)
             .map(|frame| frame.delay)
-            .sum()
+            .sum::<Duration>();
+        apply_speed(total, speed)
     }
 
     /// Queue a seek to a specific position.
@@ -284,6 +295,7 @@ pub struct MovingPicture<'a, Message> {
     opacity: f32,
     paused: bool,
     looping: bool,
+    speed: f64,
     #[ignored(Debug)]
     on_new_frame: Option<Box<dyn Fn(usize) -> Message>>,
     #[ignored(Debug)]
@@ -304,6 +316,7 @@ impl<'a, Message> MovingPicture<'a, Message> {
             opacity: 1.0,
             paused: false,
             looping: true,
+            speed: 1.0,
             on_new_frame: None,
             on_last_frame: None,
         }
@@ -365,6 +378,12 @@ impl<'a, Message> MovingPicture<'a, Message> {
     /// Sets whether playback should loop to the first frame after the last frame.
     pub fn looping(mut self, looping: bool) -> Self {
         self.looping = looping;
+        self
+    }
+
+    /// Sets playback speed multiplier. Default is 1.0.
+    pub fn speed(mut self, speed: f64) -> Self {
+        self.speed = speed;
         self
     }
 
@@ -468,8 +487,9 @@ where
 
         if let Event::Window(window::Event::RedrawRequested(now)) = event {
             let elapsed = now.duration_since(state.current.started);
+            let effective_delay = apply_speed(state.current.frame.delay, self.speed);
 
-            if elapsed > state.current.frame.delay {
+            if elapsed > effective_delay {
                 let is_last_frame = state.index == self.frames.frames.len() - 1;
                 let already_ended = state.ended;
 
@@ -501,10 +521,9 @@ where
                     }
                 }
 
-                shell
-                    .request_redraw_at(window::RedrawRequest::At(*now + state.current.frame.delay));
+                shell.request_redraw_at(window::RedrawRequest::At(*now + effective_delay));
             } else {
-                let remaining = state.current.frame.delay - elapsed;
+                let remaining = effective_delay - elapsed;
 
                 shell.request_redraw_at(window::RedrawRequest::At(*now + remaining));
             }
